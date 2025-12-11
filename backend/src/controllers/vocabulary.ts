@@ -1,17 +1,20 @@
 import { Request, Response } from 'express'
 import { dynamoDB, TABLES } from '../config/dynamodb'
+import { QueryCommand, PutCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb'
 
 export const getUserVocabulary = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params
 
-    const result = await dynamoDB.query({
-      TableName: TABLES.VOCABULARY,
-      KeyConditionExpression: 'PK = :pk',
-      ExpressionAttributeValues: {
-        ':pk': `USER#${userId}`,
-      },
-    })
+    const result = await dynamoDB.send(
+      new QueryCommand({
+        TableName: TABLES.VOCABULARY,
+        KeyConditionExpression: 'PK = :pk',
+        ExpressionAttributeValues: {
+          ':pk': `USER#${userId}`,
+        },
+      })
+    )
 
     res.json(result.Items || [])
   } catch (error) {
@@ -39,10 +42,12 @@ export const saveVocabulary = async (req: Request, res: Response) => {
       highlightedAt: new Date().toISOString(),
     }
 
-    await dynamoDB.put({
-      TableName: TABLES.VOCABULARY,
-      Item: item,
-    })
+    await dynamoDB.send(
+      new PutCommand({
+        TableName: TABLES.VOCABULARY,
+        Item: item,
+      })
+    )
 
     res.json(item)
   } catch (error) {
@@ -61,13 +66,15 @@ export const deleteVocabulary = async (req: Request, res: Response) => {
     }
 
     // Extract SK from id (format: VOCAB#lessonId#word)
-    await dynamoDB.delete({
-      TableName: TABLES.VOCABULARY,
-      Key: {
-        PK: `USER#${userId}`,
-        SK: id,
-      },
-    })
+    await dynamoDB.send(
+      new DeleteCommand({
+        TableName: TABLES.VOCABULARY,
+        Key: {
+          PK: `USER#${userId}`,
+          SK: id,
+        },
+      })
+    )
 
     res.json({ message: 'Vocabulary item deleted' })
   } catch (error) {

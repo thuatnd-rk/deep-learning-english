@@ -2,18 +2,21 @@ import { Request, Response } from 'express'
 import { dynamoDB, TABLES } from '../config/dynamodb'
 import { s3Client, BUCKETS } from '../config/s3'
 import { PutObjectCommand } from '@aws-sdk/client-s3'
+import { QueryCommand, PutCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb'
 
 export const getUserRecordings = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params
 
-    const result = await dynamoDB.query({
-      TableName: TABLES.RECORDINGS,
-      KeyConditionExpression: 'PK = :pk',
-      ExpressionAttributeValues: {
-        ':pk': `USER#${userId}`,
-      },
-    })
+    const result = await dynamoDB.send(
+      new QueryCommand({
+        TableName: TABLES.RECORDINGS,
+        KeyConditionExpression: 'PK = :pk',
+        ExpressionAttributeValues: {
+          ':pk': `USER#${userId}`,
+        },
+      })
+    )
 
     res.json(result.Items || [])
   } catch (error) {
@@ -22,7 +25,9 @@ export const getUserRecordings = async (req: Request, res: Response) => {
   }
 }
 
-export const uploadRecording = async (req: Request, res: Response) => {
+type MulterRequest = Request & { file?: Express.Multer.File }
+
+export const uploadRecording = async (req: MulterRequest, res: Response) => {
   try {
     const { userId, lessonId, type } = req.body
     const audioFile = req.file
@@ -57,10 +62,12 @@ export const uploadRecording = async (req: Request, res: Response) => {
       createdAt: new Date().toISOString(),
     }
 
-    await dynamoDB.put({
-      TableName: TABLES.RECORDINGS,
-      Item: item,
-    })
+    await dynamoDB.send(
+      new PutCommand({
+        TableName: TABLES.RECORDINGS,
+        Item: item,
+      })
+    )
 
     res.json(item)
   } catch (error) {
@@ -78,13 +85,15 @@ export const deleteRecording = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'userId is required' })
     }
 
-    await dynamoDB.delete({
-      TableName: TABLES.RECORDINGS,
-      Key: {
-        PK: `USER#${userId}`,
-        SK: id,
-      },
-    })
+    await dynamoDB.send(
+      new DeleteCommand({
+        TableName: TABLES.RECORDINGS,
+        Key: {
+          PK: `USER#${userId}`,
+          SK: id,
+        },
+      })
+    )
 
     res.json({ message: 'Recording deleted' })
   } catch (error) {

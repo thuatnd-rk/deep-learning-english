@@ -1,0 +1,213 @@
+# Cursor Rules for Deep Learning English Project
+
+## ⏰ IMPORTANT: Time and Documentation Context
+
+**ALWAYS use the CURRENT DATE and TIME when referencing documentation, best practices, or making recommendations.**
+
+- When mentioning dates, use the actual current date (e.g., if today is January 2026, say "January 2026", not a hardcoded date)
+- Always reference the LATEST versions of documentation and libraries available at the current time
+- Use phrases like "latest", "current", "as of now", "up-to-date" instead of specific dates
+- When unsure about current versions, check the latest documentation or use web search to verify current information
+- This ensures recommendations stay relevant and accurate over time
+
+## Project Overview
+This is a full-stack English learning platform implementing the **Deep Listening Loop** methodology. The project consists of:
+- **Frontend**: Next.js 14 (App Router) with React, TypeScript, and Tailwind CSS
+- **Backend**: AWS Lambda functions with Express.js API (TypeScript, AWS SDK)
+- **Infrastructure**: Terraform for AWS (Lambda, API Gateway, DynamoDB, S3, CloudFront)
+
+## Architecture Principles
+
+### Backend (AWS Lambda + Express.js/TypeScript)
+- Backend runs as AWS Lambda functions (serverless)
+- Use Express Router pattern: routes → controllers → AWS services
+- Lambda handler wraps Express app using `@vendia/serverless-express` or similar
+- Follow RESTful API conventions
+- Use async/await for all async operations
+- Error handling via middleware (`errorHandler.ts`)
+- Logging via middleware (`logger.ts`) - use CloudWatch Logs in Lambda
+- AWS SDK v3 patterns (DynamoDBDocumentClient, S3Client)
+- Environment variables via Lambda environment variables (not .env files in production)
+- Lambda functions are stateless - no persistent connections
+- Keep Lambda functions lightweight and fast (cold start optimization)
+
+### Frontend (Next.js/React/TypeScript)
+- Use Next.js 14 App Router (`app/` directory)
+- Server Components by default, Client Components when needed (`'use client'`)
+- TypeScript strict mode enabled
+- Tailwind CSS for styling
+- API client in `lib/api.ts` for backend communication
+- Static export configuration for S3 deployment
+
+### Code Style
+
+#### TypeScript
+- Use strict TypeScript (`strict: true`)
+- Prefer `interface` for object shapes, `type` for unions/intersections
+- Use `const` assertions for immutable data structures
+- Export types/interfaces explicitly when used across modules
+- Use async/await instead of Promises chains
+
+#### Naming Conventions
+- **Files**: kebab-case for routes/utilities, PascalCase for React components
+- **Variables/Functions**: camelCase
+- **Constants**: UPPER_SNAKE_CASE
+- **Types/Interfaces**: PascalCase
+- **DynamoDB Keys**: Use composite keys pattern `PK#SK` (e.g., `LESSON#${id}`, `METADATA`, `TRANSCRIPT`)
+
+#### Error Handling
+- Backend: Use Express error handler middleware
+- Frontend: Handle errors gracefully with user-friendly messages
+- Log errors with context (use logger middleware in backend)
+- Return appropriate HTTP status codes
+
+#### AWS Patterns
+- DynamoDB: Use single-table design with composite keys
+- S3: Use presigned URLs for secure file access
+- Environment variables for AWS configuration (region, table names, bucket names)
+- Use AWS SDK v3 (not v2)
+- Reference latest AWS SDK v3 documentation (always use current/latest version)
+
+## File Structure Guidelines
+
+### Backend Structure
+```
+backend/src/
+├── config/          # AWS service configurations (DynamoDB, S3)
+├── controllers/     # Request handlers (business logic)
+├── routes/          # Express route definitions
+├── middleware/      # Express middleware (logger, errorHandler)
+├── index.ts         # Express app setup
+└── lambda.ts        # Lambda handler wrapper
+```
+
+### Frontend Structure
+```
+frontend/
+├── app/             # Next.js App Router pages
+├── components/       # Reusable React components
+└── lib/             # Utilities and API client
+```
+
+## Development Guidelines
+
+### When Adding New Features
+
+1. **Backend API Endpoints** (Lambda Functions):
+   - Create route in `routes/`
+   - Create controller in `controllers/`
+   - Use existing AWS config from `config/`
+   - Add error handling
+   - Update API documentation in README
+   - Lambda handler automatically wraps Express routes via `lambda.ts`
+   - Environment variables configured in Terraform (not .env files in production)
+
+2. **Frontend Components**:
+   - Create in `components/` if reusable
+   - Use TypeScript interfaces for props
+   - Add Tailwind classes for styling
+   - Use API client from `lib/api.ts` for data fetching
+
+3. **Database Changes**:
+   - Update DynamoDB table schemas in Terraform
+   - Update `TABLES` constant in `config/dynamodb.ts` if needed
+   - Consider migration strategy for existing data
+
+### Testing Considerations
+- Backend: Use Jest (configured in package.json)
+- Frontend: Consider React Testing Library for component tests
+- Integration: Test API endpoints with proper AWS credentials
+
+### Environment Variables
+- Backend (Local Development): Use `.env` file (see `env.example`)
+- Backend (Lambda): Environment variables configured in Terraform, not `.env` files
+- Frontend: Use `.env.local` for `NEXT_PUBLIC_*` variables
+- Never commit `.env` files (already in .gitignore)
+
+## Common Patterns
+
+### DynamoDB Queries
+```typescript
+// Get item
+const result = await dynamoDB.get({
+  TableName: TABLES.LESSONS,
+  Key: { PK: `LESSON#${id}`, SK: 'METADATA' }
+})
+
+// Scan (use sparingly, prefer Query)
+const result = await dynamoDB.scan({ TableName: TABLES.LESSONS })
+```
+
+### Express Route Handler (for Lambda)
+```typescript
+export const handler = async (req: Request, res: Response) => {
+  try {
+    // Implementation
+    res.json(result)
+  } catch (error) {
+    console.error('Error:', error)
+    res.status(500).json({ error: 'Failed to process request' })
+  }
+}
+```
+
+### Lambda Handler Wrapper
+```typescript
+// lambda.ts
+import serverlessExpress from '@vendia/serverless-express'
+import app from './index'
+
+export const handler = serverlessExpress({ app })
+```
+
+### Next.js API Route (if needed)
+```typescript
+// app/api/route.ts
+export async function GET(request: Request) {
+  // Implementation
+  return Response.json(data)
+}
+```
+
+## Infrastructure (Terraform)
+- Infrastructure as Code in `terraform/`
+- Use variables for configuration
+- Lambda functions deployed via Terraform
+- API Gateway HTTP API integrates with Lambda functions
+- Output important values (API Gateway URL, Lambda function ARNs, S3 bucket names)
+- Follow AWS best practices for security (IAM roles, Lambda execution roles, etc.)
+- Configure Lambda environment variables in Terraform
+- Set appropriate Lambda timeout and memory settings
+- Reference latest Terraform AWS provider documentation (always use current/latest version)
+
+## Documentation and Resources
+
+**CRITICAL**: When referencing documentation, ALWAYS use the CURRENT/LATEST versions available at the time of the request:
+
+- **Next.js**: Always reference the latest Next.js documentation and best practices (currently Next.js 14+, but check for newer versions)
+- **React**: Always reference the latest React patterns and hooks (currently React 18+, but check for newer versions)
+- **TypeScript**: Always reference the latest TypeScript features and best practices (currently TypeScript 5.x+, but check for newer versions)
+- **AWS SDK**: Always reference the latest AWS SDK v3 patterns and recommendations (check for current version)
+- **Express.js**: Always reference the latest Express.js patterns and middleware (check for current version)
+- **Terraform**: Always reference the latest Terraform AWS provider and best practices (check for current version)
+
+**When in doubt**: Use web search or check official documentation to verify the latest versions and best practices as of the current date.
+
+## Code Review Checklist
+- [ ] TypeScript types are properly defined
+- [ ] Error handling is implemented
+- [ ] Environment variables are used (not hardcoded)
+- [ ] AWS SDK v3 patterns are followed
+- [ ] Code follows existing patterns in the codebase
+- [ ] No console.log in production code (use logger middleware)
+- [ ] Frontend components are properly typed
+- [ ] API endpoints follow RESTful conventions
+- [ ] Documentation references are current/latest (not outdated)
+
+## When You're Unsure
+- Check existing similar implementations in the codebase
+- Follow the patterns established in `controllers/lessons.ts` and `routes/lessons.ts`
+- Refer to AWS SDK v3 documentation for DynamoDB/S3 operations (always use latest/current version)
+- Check Next.js App Router documentation for frontend patterns (always use latest/current version)
+- **Always prioritize current best practices and latest documentation** - use the current date when referencing versions or dates
+- If you need to verify current versions or best practices, use web search to get up-to-date information

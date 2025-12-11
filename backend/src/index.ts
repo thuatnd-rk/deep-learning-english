@@ -8,10 +8,13 @@ import recordingsRoutes from './routes/recordings'
 import { logger } from './middleware/logger'
 import { errorHandler } from './middleware/errorHandler'
 
-dotenv.config()
+// Load environment variables (for local development)
+// In Lambda, environment variables are provided by AWS
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config()
+}
 
 const app = express()
-const PORT = process.env.PORT || 3001
 
 // Middleware
 app.use(cors())
@@ -33,7 +36,14 @@ app.use('/api/recordings', recordingsRoutes)
 // Error handling middleware
 app.use(errorHandler)
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`)
-})
+// Export app for Lambda handler
+export default app
+
+// Start server only in local development
+if (require.main === module) {
+  const PORT = process.env.PORT || 3001
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`)
+  })
+}
 

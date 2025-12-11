@@ -41,7 +41,7 @@ The application follows the **Deep Listening Loop** methodology with five sequen
 
 ## Architecture
 
-The application is built on AWS cloud infrastructure with a serverless-first approach:
+The application is built on AWS cloud infrastructure with a fully serverless approach:
 
 ```
 ┌─────────────────────────────────────────┐
@@ -57,8 +57,9 @@ The application is built on AWS cloud infrastructure with a serverless-first app
                     │
                     ▼
 ┌─────────────────────────────────────────┐
-│  Backend: ECS Fargate Spot              │
-│  (Containerized API Service)            │
+│  Backend: AWS Lambda                    │
+│  (Serverless Functions)                 │
+│  (Express.js API wrapped in Lambda)     │
 └─────────────────────────────────────────┘
                     │
         ┌───────────┴───────────┐
@@ -74,7 +75,7 @@ The application is built on AWS cloud infrastructure with a serverless-first app
 
 - **Frontend**: Next.js static site hosted on S3 and distributed via CloudFront CDN
 - **API Gateway**: HTTP API for request routing, rate limiting, and authentication
-- **Backend**: ECS Fargate Spot service running containerized API (Node.js/Express)
+- **Backend**: AWS Lambda functions running Express.js API (Node.js/TypeScript)
 - **Database**: DynamoDB On-Demand for flexible, pay-per-use data storage
 - **Storage**: S3 buckets with CloudFront for audio files and user recordings
 
@@ -95,7 +96,7 @@ The application is built on AWS cloud infrastructure with a serverless-first app
 - AWS S3 (Static hosting, file storage)
 - AWS CloudFront (CDN)
 - AWS API Gateway (HTTP API)
-- AWS ECS Fargate Spot (Container orchestration)
+- AWS Lambda (Serverless compute)
 - AWS DynamoDB (NoSQL database)
 - Terraform (Infrastructure as Code)
 
@@ -108,13 +109,13 @@ deep-learning-english/
 │   ├── components/   # React components
 │   ├── lib/          # Utilities and API client
 │   └── package.json
-├── backend/          # API service
+├── backend/          # API service (Lambda)
 │   ├── src/
 │   │   ├── routes/   # API routes
 │   │   ├── controllers/ # Request handlers
 │   │   ├── config/   # AWS config
-│   │   └── index.ts  # Entry point
-│   ├── Dockerfile
+│   │   ├── index.ts  # Express app setup
+│   │   └── lambda.ts # Lambda handler wrapper
 │   └── package.json
 ├── terraform/        # Infrastructure code
 │   ├── main.tf
@@ -127,7 +128,7 @@ deep-learning-english/
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 22.x (LTS recommended) or Node.js 20.x
 - AWS CLI configured
 - Terraform 1.0+
 
@@ -144,10 +145,12 @@ npm run dev
 ```bash
 cd backend
 npm install
-cp .env.example .env
-# Edit .env with your AWS credentials
+cp env.example .env
+# Edit .env with your AWS credentials (for local development)
 npm run dev
 ```
+
+**Note**: For Lambda deployment, environment variables are configured in Terraform, not via `.env` files.
 
 ### Infrastructure Setup
 
@@ -174,6 +177,8 @@ npm run dev
 cd backend
 npm run dev
 # API available at http://localhost:3001
+# Note: Local development uses Express server
+# Lambda deployment wraps Express app in Lambda handler
 ```
 
 ## License

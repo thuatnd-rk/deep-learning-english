@@ -1,11 +1,14 @@
 import { Request, Response } from 'express'
 import { dynamoDB, TABLES } from '../config/dynamodb'
+import { ScanCommand, GetCommand } from '@aws-sdk/lib-dynamodb'
 
 export const getLessons = async (req: Request, res: Response) => {
   try {
-    const result = await dynamoDB.scan({
-      TableName: TABLES.LESSONS,
-    })
+    const result = await dynamoDB.send(
+      new ScanCommand({
+        TableName: TABLES.LESSONS,
+      })
+    )
 
     res.json(result.Items || [])
   } catch (error) {
@@ -18,13 +21,15 @@ export const getLesson = async (req: Request, res: Response) => {
   try {
     const { id } = req.params
 
-    const result = await dynamoDB.get({
-      TableName: TABLES.LESSONS,
-      Key: {
-        PK: `LESSON#${id}`,
-        SK: 'METADATA',
-      },
-    })
+    const result = await dynamoDB.send(
+      new GetCommand({
+        TableName: TABLES.LESSONS,
+        Key: {
+          PK: `LESSON#${id}`,
+          SK: 'METADATA',
+        },
+      })
+    )
 
     if (!result.Item) {
       return res.status(404).json({ error: 'Lesson not found' })
@@ -41,13 +46,15 @@ export const getTranscript = async (req: Request, res: Response) => {
   try {
     const { id } = req.params
 
-    const result = await dynamoDB.get({
-      TableName: TABLES.LESSONS,
-      Key: {
-        PK: `LESSON#${id}`,
-        SK: 'TRANSCRIPT',
-      },
-    })
+    const result = await dynamoDB.send(
+      new GetCommand({
+        TableName: TABLES.LESSONS,
+        Key: {
+          PK: `LESSON#${id}`,
+          SK: 'TRANSCRIPT',
+        },
+      })
+    )
 
     if (!result.Item) {
       return res.status(404).json({ error: 'Transcript not found' })

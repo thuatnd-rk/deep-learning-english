@@ -1,17 +1,20 @@
 import { Request, Response } from 'express'
 import { dynamoDB, TABLES } from '../config/dynamodb'
+import { QueryCommand, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb'
 
 export const getUserProgress = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params
 
-    const result = await dynamoDB.query({
-      TableName: TABLES.PROGRESS,
-      KeyConditionExpression: 'PK = :pk',
-      ExpressionAttributeValues: {
-        ':pk': `USER#${userId}`,
-      },
-    })
+    const result = await dynamoDB.send(
+      new QueryCommand({
+        TableName: TABLES.PROGRESS,
+        KeyConditionExpression: 'PK = :pk',
+        ExpressionAttributeValues: {
+          ':pk': `USER#${userId}`,
+        },
+      })
+    )
 
     res.json(result.Items || [])
   } catch (error) {
@@ -29,13 +32,15 @@ export const getLessonProgress = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'userId is required' })
     }
 
-    const result = await dynamoDB.get({
-      TableName: TABLES.PROGRESS,
-      Key: {
-        PK: `USER#${userId}`,
-        SK: `PROGRESS#${lessonId}`,
-      },
-    })
+    const result = await dynamoDB.send(
+      new GetCommand({
+        TableName: TABLES.PROGRESS,
+        Key: {
+          PK: `USER#${userId}`,
+          SK: `PROGRESS#${lessonId}`,
+        },
+      })
+    )
 
     if (!result.Item) {
       return res.status(404).json({ error: 'Progress not found' })
@@ -65,10 +70,12 @@ export const saveProgress = async (req: Request, res: Response) => {
       updatedAt: new Date().toISOString(),
     }
 
-    await dynamoDB.put({
-      TableName: TABLES.PROGRESS,
-      Item: item,
-    })
+    await dynamoDB.send(
+      new PutCommand({
+        TableName: TABLES.PROGRESS,
+        Item: item,
+      })
+    )
 
     res.json(item)
   } catch (error) {
