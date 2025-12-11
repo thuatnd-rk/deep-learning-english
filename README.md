@@ -179,8 +179,3 @@ npm run dev
 # API available at http://localhost:3001
 # Note: Local development uses Express server
 # Lambda deployment wraps Express app in Lambda handler
-```
-
-## License
-
-_To be determined._
